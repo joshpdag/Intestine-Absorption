@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crossing the Intestinal Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: an interactive villus-epithelium cross-section beside a reasoning panel */
+:root{
+  --bg:#EEF4EF; --surface:#ffffff; --panel:#E7F0E9; --ink:#1A231E; --muted:#58675E;
+  --line:#CBDAD0; --green:#15603B; --band:#0F3D2E; --mint:#1CF58B; --gold:#D79A1F;
+  --lumen:#FBF2DF; --lumen-ink:#8A6A24; --body:#E7EFF8; --body-ink:#3C5A86;
+  --cell:#EDF4EE; --cellb:#8FB09C; --memb:#5E7D6B;
+  --cap:#F6DEDE; --cap-ink:#9C4A4A; --lac:#FBF3D6; --lac-ink:#8A6D2A;
+  --good:#1C9E57; --bad:#C0462F;
+  --disp:"Archivo",system-ui,sans-serif; --text:"Source Sans 3",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121916; --surface:#1A2420; --panel:#1E2C26; --ink:#E7EFE9; --muted:#9DB0A5;
+  --line:#2C3B33; --green:#5FD39A; --band:#0B2A20; --mint:#1CF58B; --gold:#E7B646;
+  --lumen:#2B2414; --lumen-ink:#D9BE7E; --body:#172433; --body-ink:#9DC0E8;
+  --cell:#223029; --cellb:#3C5244; --memb:#80A892;
+  --cap:#3A2630; --cap-ink:#E6A4A4; --lac:#2F2919; --lac-ink:#DBBF7F;
+  --good:#3FCB7E; --bad:#E27A66; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#121916; --surface:#1A2420; --panel:#1E2C26; --ink:#E7EFE9; --muted:#9DB0A5;
+  --line:#2C3B33; --green:#5FD39A; --band:#0B2A20; --mint:#1CF58B; --gold:#E7B646;
+  --lumen:#2B2414; --lumen-ink:#D9BE7E; --body:#172433; --body-ink:#9DC0E8;
+  --cell:#223029; --cellb:#3C5244; --memb:#80A892;
+  --cap:#3A2630; --cap-ink:#E6A4A4; --lac:#2F2919; --lac-ink:#DBBF7F;
+  --good:#3FCB7E; --bad:#E27A66; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--text);line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding-block:18px;padding-left:16px;padding-right:16px}
+header.top{background:var(--band);border-radius:14px;padding:16px 20px;color:#fff}
+header.top .ey{font-family:var(--disp);font-weight:600;letter-spacing:.12em;font-size:12px;color:var(--mint);text-transform:uppercase}
+header.top h1{font-family:var(--disp);font-weight:700;font-size:clamp(20px,3.4vw,30px);margin:.15em 0 .1em;text-wrap:balance}
+header.top p{margin:0;color:#C7D6CC;font-size:14px}
+.layout{display:grid;grid-template-columns:1fr 330px;gap:18px;margin-top:18px}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+
+.scene{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.diagram{position:relative;width:100%;aspect-ratio:1000/690}
+.anat{position:absolute;inset:0;width:100%;height:100%}
+.layer{position:absolute;inset:0}
+
+.mol{position:absolute;display:flex;flex-direction:column;align-items:center;gap:1px;border:0;background:transparent;cursor:pointer;padding:2px;font-family:var(--text);transition:transform .66s cubic-bezier(.5,.05,.3,1);z-index:3}
+.mol svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.22))}
+.mol .nm{font-size:10px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:0 6px;white-space:nowrap}
+.mol:hover svg{transform:scale(1.08)}
+.mol:focus-visible{outline:3px solid var(--green);outline-offset:3px;border-radius:10px}
+.mol.sel .shape{stroke:var(--green)!important;stroke-width:4px!important}
+.mol.sel .nm{border-color:var(--green);box-shadow:0 0 0 2px color-mix(in srgb,var(--green) 30%,transparent)}
+.mol.done{pointer-events:none;z-index:1}
+.mol.done .nm{display:none}
+.mol.done svg{width:26px;height:26px}
+
+/* route = clickable cell/gap with its name, description, and a box collecting molecules that used it */
+.route{position:absolute;border:0;background:transparent;cursor:pointer;z-index:2;border-radius:10px}
+.route:hover{background:color-mix(in srgb,var(--green) 8%,transparent)}
+.route:focus-visible{outline:3px solid var(--green);outline-offset:-2px}
+.rbody{position:absolute;top:16%;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+.rbody .num{width:26px;height:26px;border-radius:50%;background:var(--band);color:#fff;font-family:var(--disp);font-weight:700;font-size:13px;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.rbody .rn{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--green);line-height:1.1;text-align:center;white-space:normal;max-width:100%}
+.rbody .rd{font-size:10.5px;color:var(--muted);line-height:1.2;text-align:center;max-width:150px}
+#route-para .rbody{top:21%;background:color-mix(in srgb,var(--surface) 80%,transparent);border-radius:8px;padding:2px 1px}
+.legend-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--surface)}
+@media (max-width:640px){.legend-row{grid-template-columns:repeat(2,1fr)}}
+.lchip{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:9px 10px;cursor:pointer;display:flex;flex-direction:column;gap:7px;min-width:0}
+.lchip:hover{border-color:var(--green)}
+.lchip:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.lchip.flash-good{border-color:var(--good);box-shadow:0 0 0 2px color-mix(in srgb,var(--good) 35%,transparent)}
+.lchip.bad-shake{animation:shake .4s}
+.lchip .hd{display:flex;gap:7px;align-items:center}
+.lchip .hd .n{flex:0 0 22px;width:22px;height:22px;border-radius:50%;background:var(--band);color:#fff;font-family:var(--disp);font-weight:700;font-size:12px;display:grid;place-items:center}
+.lchip .hd b{font-family:var(--disp);font-size:12.5px;color:var(--green);line-height:1.1}
+.lchip .ld{font-size:11px;color:var(--muted);line-height:1.25}
+.lchip .bin{min-height:40px;display:flex;flex-wrap:wrap;gap:7px;align-items:flex-start;border-top:1px dashed var(--line);padding-top:7px}
+.lchip .bin:empty::before{content:"—";color:var(--muted);opacity:.5;font-size:13px}
+.lchip .bin svg{width:26px;height:26px}
+.lchip .bin .item{display:flex;flex-direction:column;align-items:center;gap:1px;width:52px}
+.lchip .bin .item .lab{font-size:9.5px;color:var(--ink);line-height:1.05;text-align:center}
+.route.flash-good{background:color-mix(in srgb,var(--good) 18%,transparent);box-shadow:inset 0 0 0 3px var(--good)}
+.route.bad-shake{animation:shake .4s}
+@keyframes shake{10%,90%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}50%{transform:translateX(-5px)}}
+
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{font-family:var(--disp);font-weight:700;font-size:16px;margin:0 0 4px}
+.card .sub{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+.proprow{display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.proprow:first-of-type{border-top:0}
+.proprow .k{flex:0 0 104px;color:var(--muted);font-weight:600}
+.proprow .v{min-width:0}
+.ask{font-size:13.5px;margin-top:10px;font-weight:600}
+.empty{font-size:13.5px;color:var(--muted)}
+.fb{border-radius:10px;padding:10px 12px;font-size:13.5px}
+.fb.good{background:color-mix(in srgb,var(--good) 14%,var(--surface));border:1px solid color-mix(in srgb,var(--good) 45%,var(--line))}
+.fb.bad{background:color-mix(in srgb,var(--bad) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--bad) 45%,var(--line))}
+.progress{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.bar{flex:1;height:8px;background:var(--panel);border-radius:999px;overflow:hidden}
+.bar > i{display:block;height:100%;width:0;background:var(--green);transition:width .4s}
+.btn{appearance:none;font-family:var(--disp);font-weight:600;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:8px 14px;cursor:pointer}
+.btn:hover{border-color:var(--green)}
+.btn:focus-visible{outline:3px solid var(--green);outline-offset:2px}
+.win{background:color-mix(in srgb,var(--good) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--good) 45%,var(--line));border-radius:12px;padding:14px;font-size:14px}
+.legend{font-size:11.5px;color:var(--muted);line-height:1.4}
+@media (prefers-reduced-motion:reduce){.mol{transition:none}.route.bad-shake{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="ey">Unit 2 · Lesson 2.6 · Absorption</div>
+    <h1>Crossing the Intestinal Wall</h1>
+    <p>Pick a molecule from the gut, read its clues, then choose the route it can take across the wall.</p>
+  </header>
+
+  <div class="layout">
+    <div class="scene">
+      <div class="diagram" id="diagram">
+        <svg class="anat" viewBox="0 0 1000 690" preserveAspectRatio="none" aria-hidden="true" id="anat"></svg>
+        <div class="layer" id="lumen"></div>
+        <div class="layer" id="routes"></div>
+      </div>
+      <div class="legend-row" id="legend"></div>
+    </div>
+
+    <div class="panel">
+      <div class="card" aria-live="polite">
+        <div id="infoEmpty" class="empty">Select a molecule in the lumen to see its clues. Use them — what it mixes into, its charge, its size, and which way its gradient runs — to decide which route can move it across.</div>
+        <div id="infoBody" hidden>
+          <h2 id="molName"></h2>
+          <p class="sub" id="molSub"></p>
+          <div id="props"></div>
+          <div class="ask">Which route can move it across? Click a cell on the diagram, or a transport box below.</div>
+        </div>
+      </div>
+      <div id="fbCard" hidden></div>
+      <div class="card">
+        <div class="progress">
+          <span id="pcount" style="font-variant-numeric:tabular-nums">0 of 8 absorbed</span>
+          <span class="bar"><i id="pbar"></i></span>
+        </div>
+        <div style="margin-top:12px"><button class="btn" id="resetBtn" type="button">Reset</button></div>
+        <div id="winBox" hidden style="margin-top:12px"></div>
+      </div>
+      <div class="legend">Tip: two molecules can share almost every clue and still take different routes — the deciding clue is usually the gradient (uphill vs downhill) or the size (a tiny ion vs a whole molecule).</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- geometry (viewBox 1000 x 690) ---------- */
+const CELLS={simple:140,osmosis:370,facil:630,active:860};
+const GAPX=500, APICAL=210, BASAL=560;
+const CAP_Y=560, LAC_Y=618, VH=58;                       // vessels against the cells
+const CELLSPAN={simple:[40,240],osmosis:[270,470],facil:[530,730],active:[760,960]};
+const ZONE={simple:{l:4,w:20},osmosis:{l:27,w:20},para:{l:45,w:10},facil:{l:53,w:20},active:{l:76,w:20}};
+function routeX(z){return CELLS[z] ?? GAPX;}
+
+function arrow(x,y0,y1,col){return `<line x1="${x}" y1="${y0}" x2="${x}" y2="${y1-10}" stroke="${col}" stroke-width="4"/><polygon points="${x-8},${y1-12} ${x+8},${y1-12} ${x},${y1}" fill="${col}"/>`;}
+function brush(k){const [l,r]=CELLSPAN[k];let s="",n=12,step=(r-l-16)/n;for(let i=0;i<=n;i++){const x=l+8+i*step;s+=`<rect x="${x-4}" y="${APICAL-26}" width="8" height="28" rx="4" fill="var(--cell)" stroke="var(--memb)" stroke-width="2"/>`;}return s;}
+function buildAnat(){
+  let s="";
+  s+=`<rect x="0" y="0" width="1000" height="${APICAL}" fill="var(--lumen)"/>`;
+  s+=`<rect x="0" y="${BASAL}" width="1000" height="${690-BASAL}" fill="var(--body)"/>`;
+  s+=`<text x="16" y="30" font-size="18" font-family="Archivo,sans-serif" font-weight="600" letter-spacing=".04em" fill="var(--lumen-ink)">INSIDE THE SMALL INTESTINE (LUMEN)</text>`;
+  for(const k in CELLSPAN){const [l,r]=CELLSPAN[k];
+    s+=`<rect x="${l}" y="${APICAL}" width="${r-l}" height="${BASAL-APICAL}" rx="18" fill="var(--cell)" stroke="var(--cellb)" stroke-width="3"/>`;
+    s+=brush(k);
+    s+=`<line x1="${l}" y1="${APICAL}" x2="${r}" y2="${APICAL}" stroke="var(--memb)" stroke-width="4"/>`;
+    s+=`<line x1="${l}" y1="${BASAL}" x2="${r}" y2="${BASAL}" stroke="var(--memb)" stroke-width="4"/>`;
+  }
+  s+=arrow(CELLS.simple,APICAL+8,APICAL+60,"var(--memb)");
+  s+=`<rect x="${CELLS.osmosis-22}" y="${APICAL-4}" width="16" height="52" rx="7" fill="var(--cellb)" stroke="var(--memb)" stroke-width="2.5"/><rect x="${CELLS.osmosis+6}" y="${APICAL-4}" width="16" height="52" rx="7" fill="var(--cellb)" stroke="var(--memb)" stroke-width="2.5"/><rect x="${CELLS.osmosis-5}" y="${APICAL-2}" width="10" height="48" rx="4" fill="#BFE0F7"/>`;
+  s+=arrow(CELLS.osmosis,APICAL+8,APICAL+60,"#4C86C0");
+  s+=`<rect x="${CELLS.facil-22}" y="${APICAL-4}" width="16" height="52" rx="7" fill="var(--cellb)" stroke="var(--memb)" stroke-width="2.5"/><rect x="${CELLS.facil+6}" y="${APICAL-4}" width="16" height="52" rx="7" fill="var(--cellb)" stroke="var(--memb)" stroke-width="2.5"/>`;
+  s+=`<polygon points="${CELLS.active-24},${APICAL+52} ${CELLS.active-14},${APICAL-4} ${CELLS.active+14},${APICAL-4} ${CELLS.active+24},${APICAL+52}" fill="var(--cellb)" stroke="var(--memb)" stroke-width="2.5"/><circle cx="${CELLS.active+40}" cy="${APICAL+8}" r="14" fill="var(--gold)"/><text x="${CELLS.active+40}" y="${APICAL+13}" font-size="10" font-family="Archivo,sans-serif" font-weight="700" fill="#fff" text-anchor="middle">ATP</text>`;
+  // paracellular: tight-junction rungs spaced down the whole gap + dashed path
+  
+  for(let y=APICAL+6;y<BASAL-6;y+=52){s+=`<line x1="470" y1="${y}" x2="530" y2="${y}" stroke="var(--memb)" stroke-width="5"/>`;}
+  s+=arrow(GAPX,APICAL+40,APICAL+92,"var(--gold)");
+  // vessels directly against the cells, full width, no destinations
+  s+=`<rect x="0" y="${CAP_Y}" width="1000" height="${VH}" fill="var(--cap)" stroke="var(--cap-ink)" stroke-width="2" opacity=".92"/><text x="16" y="${CAP_Y+36}" font-size="19" font-family="Archivo,sans-serif" font-weight="700" fill="var(--cap-ink)">BLOOD CAPILLARY</text>`;
+  s+=`<rect x="0" y="${LAC_Y}" width="1000" height="${VH}" fill="var(--lac)" stroke="var(--lac-ink)" stroke-width="2" opacity=".92"/><text x="984" y="${LAC_Y+36}" text-anchor="end" font-size="19" font-family="Archivo,sans-serif" font-weight="700" fill="var(--lac-ink)">LACTEAL (lymph)</text>`;
+  return s;
+}
+document.getElementById("anat").innerHTML=buildAnat();
+
+/* ---------- routes ---------- */
+const ROUTES=[
+  {id:"simple",n:1,name:"Simple diffusion",desc:"Molecules dissolve through the cell membrane into the interior of the epithelial cell.",zone:"simple",reject:"Simple diffusion only takes molecules that dissolve in the oily membrane. Check what this one mixes into."},
+  {id:"osmosis",n:2,name:"Aquaporin",desc:"Water moves through a special channel protein called an aquaporin, toward the side with more dissolved solute. This movement of water is called osmosis.",zone:"osmosis",reject:"An aquaporin is a channel just for water. Is this molecule water?"},
+  {id:"para",n:3,name:"Paracellular",desc:"Molecules move through the spaces between cells.",zone:"para",reject:"Only the smallest ions squeeze through the gap between cells. Check this molecule's size and charge."},
+  {id:"facil",n:4,name:"Facilitated diffusion",desc:"Molecules move into the cell through a protein channel, from an area of high concentration to an area of low concentration.",zone:"facil",reject:"A channel protein carries a molecule only when it is heading downhill and is too big to slip between cells. Check its gradient and size."},
+  {id:"active",n:5,name:"Active transport",desc:"A pump protein uses cellular energy to move molecules into the cell, from an area of low concentration to an area of high concentration.",zone:"active",reject:"A pump spends energy only to move a molecule uphill, against its gradient. Which way is this one's gradient running?"},
+];
+
+/* ---------- molecules (building-block shapes) ---------- */
+function hexagon(fill,stroke,sw){let p=[];for(let k=0;k<6;k++){const a=Math.PI/180*(60*k-30);p.push((22+18*Math.cos(a)).toFixed(1)+","+(22+18*Math.sin(a)).toFixed(1));}return `<polygon class="shape" points="${p.join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="${sw||2.5}"/>`;}
+function icon(id){
+  const w=`width="42" height="42" viewBox="0 0 44 44"`;
+  if(id==="glu")return `<svg ${w}>${hexagon("#E0A92E","#B07D1E")}</svg>`;
+  if(id==="gal")return `<svg ${w}>${hexagon("#E6912E","#B36C1E")}</svg>`;
+  if(id==="fru")return `<svg ${w}>${hexagon("#ECC53E","#C09A26")}</svg>`;
+  if(id==="aa")return `<svg ${w}><circle class="shape" cx="22" cy="22" r="17" fill="#6DA7D8" stroke="#3C7CB0" stroke-width="2.5"/></svg>`;
+  if(id==="fa")return `<svg ${w}><polyline class="shape" points="5,27 13,17 21,27 29,17 37,27" fill="none" stroke="#6B7280" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  if(id==="va")return `<svg ${w}>${hexagon("none","#C98B3A",3.5)}</svg>`;
+  if(id==="water")return `<svg ${w}><path class="shape" d="M22 6 C12 20 12 26 22 34 C32 26 32 20 22 6Z" fill="#5B9BD5" stroke="#3C78B0" stroke-width="2.5"/></svg>`;
+  if(id==="na")return `<svg ${w}><circle class="shape" cx="22" cy="22" r="16" fill="#9B7EDE" stroke="#6E52B0" stroke-width="2.5"/><text x="22" y="28" font-size="18" font-family="Archivo,sans-serif" font-weight="700" fill="#fff" text-anchor="middle">+</text></svg>`;
+  return "";
+}
+const MOL=[
+  {id:"fa",name:"Fatty acid",correct:"simple",x:3,y:7,sub:"a building block of fat",props:[["Mixes into","oil, not water"],["Charge","none"],["Size","a long chain"],["Gut vs blood","more in the gut"]],good:"It dissolves in the oily membrane, so it slips straight through — no protein or energy needed."},
+  {id:"va",name:"Vitamin A",correct:"facil",x:14.5,y:7,sub:"a fat-soluble vitamin",props:[["Mixes into","oil, not water (fat-soluble)"],["Charge","none"],["Crosses the membrane","only with help from a transport protein"],["Gut vs blood","more in the gut (downhill)"]],good:"Even though it is fat-soluble, vitamin A does not cross freely — a transport protein carries it in, downhill and without energy. That is facilitated diffusion.",hints:{simple:"Vitamin A does dissolve in oil, so simple diffusion looks likely — but experiments show it is actually carried in by a transport protein. Check the 'crosses the membrane' clue."}},
+  {id:"water",name:"Water",correct:"osmosis",x:26,y:7,sub:"the liquid of the meal",props:[["Mixes into","it IS the water that things dissolve in"],["Charge","none, but polar"],["Size","very tiny"],["Gut vs blood","moves toward the side with more dissolved solute"]],good:"Water is polar, so it cannot slip through the oily core — it crosses through a water channel called an aquaporin, moving toward the side with more dissolved solute. That movement is osmosis."},
+  {id:"glu",name:"Glucose",correct:"active",x:37.5,y:7,sub:"a simple sugar",props:[["Mixes into","water, not oil"],["Charge","none, but water-loving"],["Size","a ring molecule"],["Gut vs blood","already plenty in the blood (uphill)"]],good:"Water-soluble and already high in the blood, so it must be pumped in against its gradient — active transport."},
+  {id:"fru",name:"Fructose",correct:"facil",x:49,y:7,sub:"a simple sugar",props:[["Mixes into","water, not oil"],["Charge","none"],["Size","a ring molecule"],["Gut vs blood","more in the gut (downhill)"]],good:"Water-soluble and heading downhill, but too big to slip between cells — a channel protein carries it through."},
+  {id:"gal",name:"Galactose",correct:"active",x:60.5,y:7,sub:"a simple sugar",props:[["Mixes into","water, not oil"],["Charge","none, but water-loving"],["Size","a ring molecule"],["Gut vs blood","already plenty in the blood (uphill)"]],good:"Like glucose — water-soluble and uphill, so a pump pushes it in."},
+  {id:"aa",name:"Amino acid",correct:"active",x:72,y:7,sub:"a building block of protein",props:[["Mixes into","water, not oil"],["Charge","has a charge"],["Size","medium"],["Gut vs blood","taken in even when blood is full (uphill)"]],good:"Charged and absorbed even when blood is full, so a pump moves it in uphill."},
+  {id:"na",name:"Sodium (Na⁺)",correct:"para",x:83.5,y:7,sub:"a mineral ion",props:[["Mixes into","water, not oil"],["Charge","a + charge (an ion)"],["Size","a single tiny ion"],["Gut vs blood","more in the gut (downhill)"]],good:"A tiny ion heading downhill — small enough to squeeze through the gap between cells."},
+];
+
+/* ---------- build overlays ---------- */
+const lumen=document.getElementById("lumen"), routesL=document.getElementById("routes"), legend=document.getElementById("legend");
+const routeCount={simple:0,osmosis:0,para:0,facil:0,active:0};
+function makeMol(m){
+  const b=document.createElement("button");
+  b.className="mol"; b.type="button"; b.id="mol-"+m.id;
+  b.style.left=m.x+"%"; b.style.top=m.y+"%"; b.setAttribute("aria-label",m.name);
+  b.innerHTML=icon(m.id)+`<span class="nm">${m.name}</span>`;
+  b.addEventListener("click",()=>selectMol(m.id));
+  lumen.appendChild(b);
+}
+MOL.forEach(makeMol);
+ROUTES.forEach(r=>{
+  const z=ZONE[r.zone]; const b=document.createElement("button");
+  b.className="route"; b.type="button"; b.id="route-"+r.id; b.setAttribute("aria-label",r.name);
+  b.style.left=z.l+"%"; b.style.width=z.w+"%"; b.style.top="28%"; b.style.height="52%";
+  b.innerHTML=`<div class="rbody"><span class="num">${r.n}</span><span class="rn">${r.name}</span></div>`;
+  b.addEventListener("click",()=>chooseRoute(r.id));
+  routesL.appendChild(b);
+  const c=document.createElement("button");
+  c.className="lchip"; c.type="button"; c.id="chip-"+r.id; c.setAttribute("aria-label",r.name+" — molecules that used this route");
+  c.innerHTML=`<span class="hd"><span class="n">${r.n}</span><b>${r.name}</b></span><span class="ld">${r.desc}</span><span class="bin" id="collect-${r.id}"></span>`;
+  c.addEventListener("click",()=>chooseRoute(r.id));
+  legend.appendChild(c);
+});
+
+/* ---------- interaction ---------- */
+let selected=null; const done=new Set();
+const infoEmpty=document.getElementById("infoEmpty"), infoBody=document.getElementById("infoBody"), fbCard=document.getElementById("fbCard");
+function selectMol(id){
+  if(done.has(id))return; selected=id;
+  document.querySelectorAll(".mol").forEach(e=>e.classList.remove("sel"));
+  document.getElementById("mol-"+id).classList.add("sel");
+  const m=MOL.find(x=>x.id===id);
+  infoEmpty.hidden=true; infoBody.hidden=false;
+  document.getElementById("molName").textContent=m.name;
+  document.getElementById("molSub").textContent=m.sub;
+  document.getElementById("props").innerHTML=m.props.map(p=>`<div class="proprow"><span class="k">${p[0]}</span><span class="v">${p[1]}</span></div>`).join("");
+  fbCard.hidden=true;
+}
+function showFb(kind,html){fbCard.hidden=false;fbCard.className="card fb "+kind;fbCard.innerHTML=html;}
+function chooseRoute(rid){
+  if(!selected){showFb("bad","<b>Pick a molecule first.</b> Click one in the lumen, then choose its route.");return;}
+  const m=MOL.find(x=>x.id===selected), r=ROUTES.find(x=>x.id===rid), el=document.getElementById("route-"+rid);
+  const chip=document.getElementById("chip-"+rid);
+  if(rid===m.correct){
+    [el,chip].forEach(e=>{e.classList.add("flash-good");setTimeout(()=>e.classList.remove("flash-good"),700);});
+    showFb("good","<b>"+m.name+" — yes.</b> "+m.good);
+    animateThrough(m,r.zone);
+  }else{
+    [el,chip].forEach(e=>{e.classList.remove("bad-shake");void e.offsetWidth;e.classList.add("bad-shake");});
+    showFb("bad","<b>Not through "+r.name.toLowerCase()+".</b> "+((m.hints&&m.hints[rid])?m.hints[rid]:r.reject));
+  }
+}
+/* path: down into the staging row, across to the route column, then down into the vessel */
+function animateThrough(m,zone){
+  const el=document.getElementById("mol-"+m.id);
+  el.classList.remove("sel"); el.classList.add("done");   // shrink first so it lands sized correctly
+  const dgm=document.getElementById("diagram").getBoundingClientRect();
+  const W=dgm.width, H=dgm.height;
+  const er=el.getBoundingClientRect(), cx0=er.left+er.width/2, cy0=er.top+er.height/2;
+  const stageY=dgm.top + (165/690)*H;
+  const off=routeCount[zone]*34; routeCount[zone]++;
+  const landX=dgm.left + ((routeX(zone)+off)/1000)*W;
+  const dest=(m.id==="fa"||m.id==="va")?"lac":"cap";
+  const vy=dgm.top + (((dest==="lac"?LAC_Y:CAP_Y)+VH/2)/690)*H;
+  const s1=`translate(0px,${(stageY-cy0).toFixed(1)}px)`;
+  const s2=`translate(${(landX-cx0).toFixed(1)}px,${(stageY-cy0).toFixed(1)}px)`;
+  const s3=`translate(${(landX-cx0).toFixed(1)}px,${(vy-cy0).toFixed(1)}px)`;
+  const finish=()=>{addToCollect(m);markDone(m.id);};
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches){el.style.transform=s3;finish();return;}
+  let stage=0;
+  const next=()=>{stage++; if(stage===1){el.style.transform=s2;} else if(stage===2){el.style.transform=s3;} else {el.removeEventListener("transitionend",next);finish();}};
+  el.addEventListener("transitionend",next);
+  requestAnimationFrame(()=>{el.style.transform=s1;});
+}
+function addToCollect(m){
+  const box=document.getElementById("collect-"+m.correct);
+  if(box){const d=document.createElement("span");d.className="item";d.title=m.name;d.innerHTML=icon(m.id)+`<span class="lab">${m.name}</span>`;box.appendChild(d);}
+}
+function markDone(id){
+  done.add(id);
+  if(selected===id){selected=null;infoBody.hidden=true;infoEmpty.hidden=false;}
+  const n=done.size;
+  document.getElementById("pcount").textContent=n+" of 8 absorbed";
+  document.getElementById("pbar").style.width=(n/8*100)+"%";
+  if(n===8){const w=document.getElementById("winBox");w.hidden=false;w.className="win";w.innerHTML="<b>All eight molecules absorbed.</b> Each route's box now shows the molecules that used it — notice that molecules with similar clues didn't all take the same route.";}
+}
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  done.clear(); selected=null; infoBody.hidden=true; infoEmpty.hidden=false; fbCard.hidden=true;
+  for(const k in routeCount)routeCount[k]=0;
+  document.getElementById("pcount").textContent="0 of 8 absorbed"; document.getElementById("pbar").style.width="0";
+  document.getElementById("winBox").hidden=true;
+  document.querySelectorAll(".bin").forEach(c=>c.innerHTML="");
+  document.querySelectorAll(".mol").forEach(e=>e.remove());
+  MOL.forEach(makeMol);
+});
+</script>
+</body>
+</html>
