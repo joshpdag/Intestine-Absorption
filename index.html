@@ -134,7 +134,7 @@ header.top p{margin:0;color:#C7D6CC;font-size:14px}
 
     <div class="panel">
       <div class="card" aria-live="polite">
-        <div id="infoEmpty" class="empty">Select a molecule in the lumen to see its clues. Use them — what it mixes into, its charge, its size, and which way its gradient runs — to decide which route can move it across.</div>
+        <div id="infoEmpty" class="empty">Select a molecule in the lumen to see its clues. Use its polarity, its size, and its charge to decide which route can move it across.</div>
         <div id="infoBody" hidden>
           <h2 id="molName"></h2>
           <p class="sub" id="molSub"></p>
@@ -151,7 +151,7 @@ header.top p{margin:0;color:#C7D6CC;font-size:14px}
         <div style="margin-top:12px"><button class="btn" id="resetBtn" type="button">Reset</button></div>
         <div id="winBox" hidden style="margin-top:12px"></div>
       </div>
-      <div class="legend">Tip: two molecules can share almost every clue and still take different routes — the deciding clue is usually the gradient (uphill vs downhill) or the size (a tiny ion vs a whole molecule).</div>
+      <div class="legend">Tip: a few molecules look identical on these clues but still take different routes. When that happens, pick a route and let the result show you which one works.</div>
     </div>
   </div>
 </div>
@@ -196,11 +196,11 @@ document.getElementById("anat").innerHTML=buildAnat();
 
 /* ---------- routes ---------- */
 const ROUTES=[
-  {id:"simple",n:1,name:"Simple diffusion",desc:"Molecules dissolve through the cell membrane into the interior of the epithelial cell.",zone:"simple",reject:"Simple diffusion only takes molecules that dissolve in the oily membrane. Check what this one mixes into."},
+  {id:"simple",n:1,name:"Simple diffusion",desc:"Molecules dissolve through the cell membrane into the interior of the epithelial cell.",zone:"simple",reject:"Simple diffusion only takes molecules that dissolve in the oily membrane. Check this molecule's polarity."},
   {id:"osmosis",n:2,name:"Aquaporin",desc:"Water moves through a special channel protein called an aquaporin, toward the side with more dissolved solute. This movement of water is called osmosis.",zone:"osmosis",reject:"An aquaporin is a channel just for water. Is this molecule water?"},
-  {id:"para",n:3,name:"Paracellular",desc:"Molecules move through the spaces between cells.",zone:"para",reject:"Only the smallest ions squeeze through the gap between cells. Check this molecule's size and charge."},
-  {id:"facil",n:4,name:"Facilitated diffusion",desc:"Molecules move into the cell through a protein channel, from an area of high concentration to an area of low concentration.",zone:"facil",reject:"A channel protein carries a molecule only when it is heading downhill and is too big to slip between cells. Check its gradient and size."},
-  {id:"active",n:5,name:"Active transport",desc:"A pump protein uses cellular energy to move molecules into the cell, from an area of low concentration to an area of high concentration.",zone:"active",reject:"A pump spends energy only to move a molecule uphill, against its gradient. Which way is this one's gradient running?"},
+  {id:"para",n:3,name:"Paracellular",desc:"Molecules move through the spaces between cells.",zone:"para",reject:"Only the smallest things slip through the gap between cells — tiny ions, and water pulled along with them. Check this molecule's size."},
+  {id:"facil",n:4,name:"Facilitated diffusion",desc:"Molecules move into the cell through a protein channel, from an area of high concentration to an area of low concentration.",zone:"facil",reject:"A protein channel carries certain molecules across, but not this one. If two molecules look identical on the clues, try the other transport route."},
+  {id:"active",n:5,name:"Active transport",desc:"A pump protein uses cellular energy to move molecules into the cell, from an area of low concentration to an area of high concentration.",zone:"active",reject:"A pump uses energy to move certain molecules across, but not this one. If two molecules look identical on the clues, try the other transport route."},
 ];
 
 /* ---------- molecules (building-block shapes) ---------- */
@@ -218,14 +218,14 @@ function icon(id){
   return "";
 }
 const MOL=[
-  {id:"fa",name:"Fatty acid",correct:"simple",x:3,y:7,sub:"a building block of fat",props:[["Mixes into","oil, not water"],["Charge","none"],["Size","a long chain"],["Gut vs blood","more in the gut"]],good:"It dissolves in the oily membrane, so it slips straight through — no protein or energy needed."},
-  {id:"va",name:"Vitamin A",correct:"facil",x:14.5,y:7,sub:"a fat-soluble vitamin",props:[["Mixes into","oil, not water (fat-soluble)"],["Charge","none"],["Crosses the membrane","only with help from a transport protein"],["Gut vs blood","more in the gut (downhill)"]],good:"Even though it is fat-soluble, vitamin A does not cross freely — a transport protein carries it in, downhill and without energy. That is facilitated diffusion.",hints:{simple:"Vitamin A does dissolve in oil, so simple diffusion looks likely — but experiments show it is actually carried in by a transport protein. Check the 'crosses the membrane' clue."}},
-  {id:"water",name:"Water",correct:"osmosis",x:26,y:7,sub:"the liquid of the meal",props:[["Mixes into","it IS the water that things dissolve in"],["Charge","none, but polar"],["Size","very tiny"],["Gut vs blood","moves toward the side with more dissolved solute"]],good:"Water is polar, so it cannot slip through the oily core — it crosses through a water channel called an aquaporin, moving toward the side with more dissolved solute. That movement is osmosis."},
-  {id:"glu",name:"Glucose",correct:"active",x:37.5,y:7,sub:"a simple sugar",props:[["Mixes into","water, not oil"],["Charge","none, but water-loving"],["Size","a ring molecule"],["Gut vs blood","already plenty in the blood (uphill)"]],good:"Water-soluble and already high in the blood, so it must be pumped in against its gradient — active transport."},
-  {id:"fru",name:"Fructose",correct:"facil",x:49,y:7,sub:"a simple sugar",props:[["Mixes into","water, not oil"],["Charge","none"],["Size","a ring molecule"],["Gut vs blood","more in the gut (downhill)"]],good:"Water-soluble and heading downhill, but too big to slip between cells — a channel protein carries it through."},
-  {id:"gal",name:"Galactose",correct:"active",x:60.5,y:7,sub:"a simple sugar",props:[["Mixes into","water, not oil"],["Charge","none, but water-loving"],["Size","a ring molecule"],["Gut vs blood","already plenty in the blood (uphill)"]],good:"Like glucose — water-soluble and uphill, so a pump pushes it in."},
-  {id:"aa",name:"Amino acid",correct:"active",x:72,y:7,sub:"a building block of protein",props:[["Mixes into","water, not oil"],["Charge","has a charge"],["Size","medium"],["Gut vs blood","taken in even when blood is full (uphill)"]],good:"Charged and absorbed even when blood is full, so a pump moves it in uphill."},
-  {id:"na",name:"Sodium (Na⁺)",correct:"para",x:83.5,y:7,sub:"a mineral ion",props:[["Mixes into","water, not oil"],["Charge","a + charge (an ion)"],["Size","a single tiny ion"],["Gut vs blood","more in the gut (downhill)"]],good:"A tiny ion heading downhill — small enough to squeeze through the gap between cells."},
+  {id:"fa",name:"Fatty acid",correct:"simple",x:3,y:7,sub:"a building block of fat",props:[["Polarity","nonpolar (dissolves in oil, not water)"],["Size","a long chain"],["Charge","none"]],good:"It dissolves in the oily membrane, so it slips straight through — no protein or energy needed."},
+  {id:"va",name:"Vitamin A",correct:"facil",x:14.5,y:7,sub:"a fat-soluble vitamin",props:[["Polarity","nonpolar (fat-soluble)"],["Size","a fairly large molecule"],["Charge","none"]],good:"Even though it is fat-soluble, vitamin A does not cross freely — a transport protein carries it in, downhill and without energy. That is facilitated diffusion.",hints:{simple:"Vitamin A does dissolve in oil, so simple diffusion looks likely — but experiments show it is actually carried in by a transport protein. This is one you discover from the result."}},
+  {id:"water",name:"Water",correct:["osmosis","para"],x:26,y:7,sub:"the liquid of the meal",props:[["Polarity","polar"],["Size","very tiny"],["Charge","none"]],good:"Water is polar, so it can't dissolve through the oily membrane. It crosses two ways: through aquaporin channels (osmosis), and by slipping through the gaps between cells, pulled along with the solutes being absorbed."},
+  {id:"water2",name:"Water",correct:["osmosis","para"],x:37.5,y:7,sub:"the liquid of the meal",props:[["Polarity","polar"],["Size","very tiny"],["Charge","none"]],good:"Water is polar, so it can't dissolve through the oily membrane. It crosses two ways: through aquaporin channels (osmosis), and by slipping through the gaps between cells, pulled along with the solutes being absorbed."},
+  {id:"glu",name:"Glucose",correct:"active",x:49,y:7,sub:"a simple sugar",props:[["Polarity","polar (water-loving)"],["Size","large"],["Charge","none"]],good:"Water-soluble and already high in the blood, so it must be pumped in against its gradient — active transport."},
+  {id:"fru",name:"Fructose",correct:"facil",x:60.5,y:7,sub:"a simple sugar",props:[["Polarity","polar (water-loving)"],["Size","large"],["Charge","none"]],good:"Water-soluble and heading downhill, but too big to slip between cells — a channel protein carries it through."},
+  {id:"aa",name:"Amino acid",correct:"active",x:72,y:7,sub:"a building block of protein",props:[["Polarity","polar"],["Size","medium"],["Charge","has a + and a – charge"]],good:"Charged and absorbed even when blood is full, so a pump moves it in uphill."},
+  {id:"na",name:"Sodium (Na⁺)",correct:["para","active"],x:83.5,y:7,sub:"a mineral ion",props:[["Polarity","polar"],["Size","a single tiny ion"],["Charge","a full + charge (an ion)"]],good:"A tiny ion that crosses two ways: it slips through the gap between cells (paracellular), and it is also carried into the cell by a pump protein using energy (active transport)."},
 ];
 
 /* ---------- build overlays ---------- */
@@ -273,17 +273,17 @@ function chooseRoute(rid){
   if(!selected){showFb("bad","<b>Pick a molecule first.</b> Click one in the lumen, then choose its route.");return;}
   const m=MOL.find(x=>x.id===selected), r=ROUTES.find(x=>x.id===rid), el=document.getElementById("route-"+rid);
   const chip=document.getElementById("chip-"+rid);
-  if(rid===m.correct){
+  if(Array.isArray(m.correct)?m.correct.includes(rid):rid===m.correct){
     [el,chip].forEach(e=>{e.classList.add("flash-good");setTimeout(()=>e.classList.remove("flash-good"),700);});
     showFb("good","<b>"+m.name+" — yes.</b> "+m.good);
-    animateThrough(m,r.zone);
+    animateThrough(m,r.zone,rid);
   }else{
     [el,chip].forEach(e=>{e.classList.remove("bad-shake");void e.offsetWidth;e.classList.add("bad-shake");});
     showFb("bad","<b>Not through "+r.name.toLowerCase()+".</b> "+((m.hints&&m.hints[rid])?m.hints[rid]:r.reject));
   }
 }
 /* path: down into the staging row, across to the route column, then down into the vessel */
-function animateThrough(m,zone){
+function animateThrough(m,zone,rid){
   const el=document.getElementById("mol-"+m.id);
   el.classList.remove("sel"); el.classList.add("done");   // shrink first so it lands sized correctly
   const dgm=document.getElementById("diagram").getBoundingClientRect();
@@ -297,15 +297,15 @@ function animateThrough(m,zone){
   const s1=`translate(0px,${(stageY-cy0).toFixed(1)}px)`;
   const s2=`translate(${(landX-cx0).toFixed(1)}px,${(stageY-cy0).toFixed(1)}px)`;
   const s3=`translate(${(landX-cx0).toFixed(1)}px,${(vy-cy0).toFixed(1)}px)`;
-  const finish=()=>{addToCollect(m);markDone(m.id);};
+  const finish=()=>{addToCollect(m,rid);markDone(m.id);};
   if(matchMedia("(prefers-reduced-motion:reduce)").matches){el.style.transform=s3;finish();return;}
   let stage=0;
   const next=()=>{stage++; if(stage===1){el.style.transform=s2;} else if(stage===2){el.style.transform=s3;} else {el.removeEventListener("transitionend",next);finish();}};
   el.addEventListener("transitionend",next);
   requestAnimationFrame(()=>{el.style.transform=s1;});
 }
-function addToCollect(m){
-  const box=document.getElementById("collect-"+m.correct);
+function addToCollect(m,rid){
+  const box=document.getElementById("collect-"+(rid||(Array.isArray(m.correct)?m.correct[0]:m.correct)));
   if(box){const d=document.createElement("span");d.className="item";d.title=m.name;d.innerHTML=icon(m.id)+`<span class="lab">${m.name}</span>`;box.appendChild(d);}
 }
 function markDone(id){
